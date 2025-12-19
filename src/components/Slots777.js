@@ -33,6 +33,7 @@ const Slots777 = () => {
   const timersRef = useRef([]);
   const leverAudioRef = useRef(null);
   const loseAudioRef = useRef(null);
+  const winAudioRef = useRef(null);
 
   useEffect(() => {
     if (!price || !menuItems || !restaurant) {
@@ -45,9 +46,11 @@ const Slots777 = () => {
     try {
       leverAudioRef.current = new Audio(process.env.PUBLIC_URL + '/sounds/lets-go-gambling_dVjTC3g.mp3');
       loseAudioRef.current = new Audio(process.env.PUBLIC_URL + '/sounds/aw-dangit.mp3');
+      winAudioRef.current = new Audio(process.env.PUBLIC_URL + '/sounds/i-cant-stop-winning.mp3');
       // slightly lower volume defaults; can be adjusted later
       leverAudioRef.current.volume = 0.9;
       loseAudioRef.current.volume = 0.9;
+      winAudioRef.current.volume = 1.0;
     } catch (_) {}
     return () => {
       timersRef.current.forEach(clearInterval);
@@ -60,6 +63,10 @@ const Slots777 = () => {
         if (loseAudioRef.current) {
           loseAudioRef.current.pause();
           loseAudioRef.current.currentTime = 0;
+        }
+        if (winAudioRef.current) {
+          winAudioRef.current.pause();
+          winAudioRef.current.currentTime = 0;
         }
       } catch (_) {}
     };
@@ -105,7 +112,7 @@ const Slots777 = () => {
     return weightedPick();
   };
 
-  const spin = () => {
+  const spin = (forceWin = false) => {
     if (isSpinning) return;
     setResultItem(null);
     setIsLoss(false);
@@ -117,6 +124,10 @@ const Slots777 = () => {
         loseAudioRef.current.pause();
         loseAudioRef.current.currentTime = 0;
       }
+      if (winAudioRef.current) {
+        winAudioRef.current.pause();
+        winAudioRef.current.currentTime = 0;
+      }
       if (leverAudioRef.current) {
         leverAudioRef.current.currentTime = 0;
         void leverAudioRef.current.play();
@@ -124,7 +135,8 @@ const Slots777 = () => {
     } catch (_) {}
 
     // Decide targets. Small chance of jackpot (777)
-    const jackpot = Math.random() < 0.02; // 2%
+    const isForced = typeof forceWin === 'boolean' ? forceWin : false;
+    const jackpot = isForced || Math.random() < 0.02; // 2%
     const targets = jackpot ? ['7️⃣','7️⃣','7️⃣'] : [
       symbols[Math.floor(Math.random() * symbols.length)],
       symbols[Math.floor(Math.random() * symbols.length)],
@@ -186,6 +198,17 @@ const Slots777 = () => {
                 } else {
                   show('🎯 Perfect match!', { type: 'success', duration: 2500 });
                 }
+                
+                // Play 777 audio if jackpot
+                if (icons.every(icon => icon === '7️⃣')) {
+                  try {
+                    if (winAudioRef.current) {
+                      winAudioRef.current.currentTime = 0;
+                      void winAudioRef.current.play();
+                    }
+                  } catch(e) { console.error(e); }
+                }
+
                 // Wallet changes occur after placing order; refresh then as well
               }
             }, 250);
@@ -267,6 +290,15 @@ const Slots777 = () => {
             disabled={isSpinning}
             style={{ fontSize: '1.1rem', padding: '0.9rem 2rem', opacity: isSpinning ? 0.6 : 1 }}
           >{isSpinning ? 'Spinning...' : '🎰 Pull the Lever'}</button>
+          
+          <div style={{ marginTop: '1rem' }}>
+             <button 
+               className="btn btn-secondary" 
+               onClick={() => spin(true)}
+               disabled={isSpinning}
+               style={{ fontSize: '0.8rem', padding: '0.5rem 1rem' }}
+             >Test 777</button>
+          </div>
         </div>
       </div>
 
@@ -333,5 +365,4 @@ const Slots777 = () => {
     </div>
   );
 };
-
 export default Slots777;
